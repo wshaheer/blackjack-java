@@ -10,6 +10,14 @@ public class Card {
         this.suit = suit;
     }
 
+    public Rank getRank() {
+        return rank;
+    }
+
+    public Suit getSuit() {
+        return suit;
+    }
+
     @Override
     public String toString() {
         return String.format("%s of %s", rank.label, suit.symbol);
