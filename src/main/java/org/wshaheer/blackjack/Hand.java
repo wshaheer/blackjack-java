@@ -1,6 +1,7 @@
 package org.wshaheer.blackjack;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class Hand {
     private int points;
@@ -14,7 +15,7 @@ public class Hand {
         this.cards = this.deck.distribute();
         this.points = calculatePoints();
 
-        checkForAces();
+        discoverAceCards();
         evaluateAcePoints();
     }
 
@@ -24,7 +25,7 @@ public class Hand {
         this.cards = cards;
         this.points = calculatePoints();
 
-        checkForAces();
+        discoverAceCards();
         evaluateAcePoints();
     }
 
@@ -45,13 +46,27 @@ public class Hand {
         this.cards = this.deck.distribute();
         this.points = calculatePoints();
 
-
+        discoverAceCards();
+        evaluateAcePoints();
     }
 
     public void deal() {
         cards.add(deck.deal());
-        checkForAces();
+        discoverAceCards();
         updatePoints();
+    }
+
+    public boolean hasBlackJack() {
+        return cards.size() == 2 && points == 21;
+    }
+
+    @Override
+    public String toString() {
+        String cardsInHand = cards.stream()
+                .map(Card::toString)
+                .collect(Collectors.joining(", "));
+
+        return String.format("%s (%d)", cardsInHand, points);
     }
 
     private int calculatePoints() {
@@ -64,7 +79,7 @@ public class Hand {
         return score;
     }
 
-    private void checkForAces() {
+    private void discoverAceCards() {
         for (Card c : cards) {
             if (c.getRank().label.equals("ACE")) {
                 aces++;
