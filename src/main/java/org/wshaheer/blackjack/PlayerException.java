@@ -3,20 +3,15 @@ package org.wshaheer.blackjack;
 public class PlayerException extends Exception {
     private static final long serialVersionUID = -1710920225661730009L;
 
+    private final PlayerActionError error;
+
     public PlayerException(PlayerActionError error) {
         super(error.getMessage());
+
+        this.error = error;
     }
 
-    public PlayerException(String message) {
-        super(message);
-    }
-
-
-    public PlayerException(Throwable cause) {
-        super(cause);
-    }
-
-    public PlayerException(String message, Throwable cause) {
-        super(message, cause);
+    public PlayerActionError getError() {
+        return error;
     }
 }

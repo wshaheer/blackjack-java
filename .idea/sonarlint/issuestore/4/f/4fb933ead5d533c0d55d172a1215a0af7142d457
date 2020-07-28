@@ -1,0 +1,11 @@
+
+k
+java:S3878Q"ODisambiguate this call by either casting as "CharSequence" or "CharSequence[]".(ì­¥8ÃËƒ›¹.
+@
+java:S2629V"$Invoke method(s) only conditionally.(µŞÌ:8êÒ‹›¹.
+p
+java:S3776‡"RRefactor this method to reduce its Cognitive Complexity from 44 to the 15 allowed.(³ª×š8àû¹.
+G
+java:S2629Ÿ"$Invoke method(s) only conditionally.(Ş†åÒıÿÿÿÿ8Ùú¶¹.
+F
+java:S2275I"*An 'int' is expected rather than a String.(¡óÜL8ÃËƒ›¹.

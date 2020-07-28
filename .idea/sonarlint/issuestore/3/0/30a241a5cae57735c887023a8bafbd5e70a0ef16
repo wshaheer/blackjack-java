@@ -1,0 +1,7 @@
+
+p
+java:S1104"PMake deck a static final constant or non-public and provide accessors if needed.(ÃîÍïúÿÿÿÿ8¤ƒ’”¹.
+r
+java:S1104"RMake dealer a static final constant or non-public and provide accessors if needed.(ÀïÉ™üÿÿÿÿ8¤ƒ’”¹.
+r
+java:S1104"RMake player a static final constant or non-public and provide accessors if needed.(†Á‚¹ıÿÿÿÿ8ÔÍ“”¹.

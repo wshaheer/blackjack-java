@@ -20,6 +20,10 @@ public class Player implements IPlayer {
         this.hands.add(new Hand(deck));
     }
 
+    /**
+     * Returns the portion of funds allocated to the current round
+     * @return amount placed as bet
+     */
     public int getBets() {
         return bets;
     }
