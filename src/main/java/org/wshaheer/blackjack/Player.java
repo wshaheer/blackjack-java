@@ -44,12 +44,12 @@ public class Player implements IPlayer {
         hands.iterator().forEachRemaining(Hand::initialize);
     }
 
-    public int didWin() {
+    public int won() {
         int balance = funds;
 
-        if (hands.get(0).hasBlackJack()) {
+        if (hands.get(0).blackjack()) {
             funds += bets / 2;
-        } else if (hands.size() > 1 && hands.get(1).hasBlackJack()) {
+        } else if (hands.size() > 1 && hands.get(1).blackjack()) {
             funds += bets / 2;
         } else {
             funds += bets;
@@ -58,7 +58,7 @@ public class Player implements IPlayer {
         return funds - balance;
     }
 
-    public void didLose() {
+    public void lost() {
         funds -= bets;
     }
 

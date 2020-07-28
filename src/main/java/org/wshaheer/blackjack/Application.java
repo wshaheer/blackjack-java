@@ -1,16 +1,14 @@
 package org.wshaheer.blackjack;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.List;
 import java.util.ListIterator;
 
 public class Application {
-    private static final Logger LOGGER = LogManager.getLogger(Application.class);
 
     private static Deck deck;
     private static Hand dealer;
@@ -23,35 +21,45 @@ public class Application {
         start();
 
         do {
-            LOGGER.info(String.format("DEALER CARDS: %s", dealer.getCards().get(0).toString()));
+            System.out.printf("DEALER CARDS: %s%n", dealer.getCards().get(0).toString());
 
             play();
             deal();
-            end();
+            stop();
         } while (next());
     }
 
-    private static void start() {
-        setup();
-        bet();
+    private static synchronized void start() {
+        do {
+            try {
+                int funds = Integer.parseInt(query("Enter fund amount (CAD)"));
+
+                if (funds < 50) {
+                    System.out.println("Value must be at least 50");
+                } else {
+                    player = new Player(funds, deck);
+                    break;
+                }
+            } catch (NumberFormatException e) {
+                System.out.println("Value must be an integer");
+            }
+        } while (true);
     }
 
-    private static void end() {
+    private static void stop() {
         player.hands.iterator().forEachRemaining(hand -> {
             int score = hand.getPoints();
 
-            if (score > dealer.getPoints() || (hand.hasBlackJack() && dealer.hasBlackJack())) {
-                int earnings = player.didWin();
-                String position = player.hands.size() == 1 ? ""
-                        : String.format("#%d hand", player.hands.indexOf(hand) + 1);
+            if (score > dealer.getPoints() || (hand.blackjack() && dealer.blackjack())) {
+                int earnings = player.won();
 
-                LOGGER.info(String.format("HAND %s EARNED %d (CAD)", position, earnings));
+                System.out.printf("PLAYER EARNED %d (CAD)%n", earnings);
             } else if (score == 0 || score < dealer.getPoints()) {
-                player.didLose();
-
-                LOGGER.info("PLAYER LOST");
+                player.lost();
+                
+                System.out.println("PLAYER LOST");
             } else {
-                LOGGER.info("PLAYER TIED");
+                System.out.println("PLAYER TIED");
             }
         });
     }
@@ -67,14 +75,10 @@ public class Application {
     }
 
     private static boolean reset() {
-        String balance = String.format("%d (CAD)", player.getBets() - player.getFunds());
-
-        if (!balance.contains("-")) {
-            balance = String.format("+%s", balance);
-        }
+        int balance = player.getBets() - player.getFunds();
 
         if (player.getBets() > 0) {
-            String decision = query("PLAY AGAIN? (y/n)\n> ")
+            String decision = query("PLAY AGAIN? (y/n)")
                     .trim()
                     .toLowerCase();
 
@@ -85,65 +89,51 @@ public class Application {
 
                 return true;
             } else {
-                LOGGER.info(String.format("PLAYER BALANCE: %s (CAD)", balance));
+                System.out.printf("PLAYER BALANCE: %d (CAD)", balance);
 
                 return false;
             }
         } else {
-            LOGGER.info("PLAYER BALANCE: 0 (CAD)");
+            System.out.println("PLAYER BALANCE: 0 (CAD)");
 
             return false;
         }
     }
 
-    private static void setup() {
-        do {
+    private static synchronized void bet() {
+        System.out.println("*****PLAYER BET*****");
+
+        while (true) {
             try {
-                int funds = Integer.parseInt(query("Enter fund amount (CAD)\n> "));
-
-                if (funds < 50) {
-                    LOGGER.warn("Value must be at least 50\n");
-                } else {
-                    player = new Player(funds, deck);
-                    break;
-                }
-            } catch (NumberFormatException e) {
-                LOGGER.error("Value must be an integer\n");
-            }
-        } while (true);
-    }
-
-    private static void bet() {
-        LOGGER.info("*****PLAYER BET*****");
-
-        do {
-            try {
-                int amount = Integer.parseInt(query("Enter bet amount (CAD)\n> "));
+                int amount = Integer.parseInt(query("Enter bet amount (CAD)"));
 
                 if (amount > player.getFunds()) {
-                    LOGGER.warn("Value must be less than OR equal to available funds");
+                    System.out.println("Value must be less than OR equal to available funds");
                 } else if (amount < 1) {
-                    LOGGER.warn("Value must be greater than 0");
+                    System.out.println("Value must be greater than 0");
                 } else {
                     player.setBets(amount);
                     break;
                 }
             } catch (NumberFormatException e) {
-                LOGGER.error("Value must be an integer");
+                System.out.println("Value must be an integer");
             }
-        } while (true);
+        }
     }
 
-    private static void play() {
+    private static synchronized void play() {
         boolean doubled = false;
         boolean split = false;
 
         Hand hand = player.hands.get(0);
         List<Card> cards = hand.getCards();
 
-        LOGGER.info("*****PLAYER TURN*****");
-        LOGGER.info(String.format("PLAYER FUNDS: %d (CAD)", player.getFunds()));
-        LOGGER.info(String.format("PLAYER CARDS: %s and %s (%d)", cards.get(0), cards.get(1), hand.getPoints()));
+        System.out.println("*****PLAYER TURN*****");
+        System.out.printf("PLAYER FUNDS: %d (CAD)%n", player.getFunds());
+
+        bet();
+
+        System.out.printf("PLAYER CARDS: %s and %s (%d)%n", cards.get(0), cards.get(1), hand.getPoints());
 
         ListIterator<Hand> iterator = player.hands.listIterator();
 
@@ -153,13 +143,13 @@ public class Application {
 
             while (!concluded(hand) && (!doubled || hand.getCards().size() < 3)) {
                 boolean breaking = false;
-                String decision = query("Available actions: (h)it, (s)tand, (sp)lit, (d)ouble, (su)rrender\n> ")
+                String decision = query("Available actions: (h)it, (s)tand, (sp)lit, (d)ouble, (su)rrender")
                         .trim()
                         .toLowerCase();
 
                 if (split) {
-                    LOGGER.info(String.format("PLAYER HAND: #%d", index));
-                    LOGGER.info(String.format("PLAYER CARDS: %s", hand.toString()));
+                    System.out.printf("PLAYER HAND: #%d%n", index);
+                    System.out.printf("PLAYER CARDS: %s%n", hand.toString());
                 }
 
                 switch (decision) {
@@ -167,8 +157,8 @@ public class Application {
                     case "hit":
                         player.hit(index);
 
-                        LOGGER.info("PLAYER ACTION: HIT");
-                        LOGGER.info(String.format("PLAYER CARDS: %s", h.toString()));
+                        System.out.println("PLAYER ACTION: HIT");
+                        System.out.printf("PLAYER CARDS: %s%n", h.toString());
 
                         break;
 
@@ -176,7 +166,7 @@ public class Application {
                     case "stand":
                         breaking = true;
 
-                        LOGGER.info("PLAYER ACTION: STAND");
+                        System.out.println("PLAYER ACTION: STAND");
                         break;
 
                     case "sp":
@@ -186,14 +176,14 @@ public class Application {
                                 split = true;
 
                                 player.split();
-                                LOGGER.info("PLAYER ACTION: SPLIT");
+                                System.out.println("PLAYER ACTION: SPLIT");
                             } catch (PlayerException e) {
                                 split = false;
 
-                                LOGGER.warn(e.getMessage());
+                                System.out.println(e.getMessage());
                             }
                         } else {
-                            LOGGER.warn("NOT ALLOWED: HAND SPLIT");
+                            System.out.println("NOT ALLOWED: HAND SPLIT");
                         }
 
                         break;
@@ -205,12 +195,12 @@ public class Application {
                                 doubled = true;
 
                                 player.doubleDown();
-                                LOGGER.info("PLAYER ACTION: DOUBLED");
+                                System.out.println("PLAYER ACTION: DOUBLED");
                             } catch (PlayerException e) {
-                                LOGGER.warn(e.getMessage());
+                                System.out.println(e.getMessage());
                             }
                         } else {
-                            LOGGER.warn("NOT ALLOWED: ALREADY DOUBLED");
+                            System.out.println("NOT ALLOWED: ALREADY DOUBLED");
                         }
 
                         break;
@@ -223,18 +213,18 @@ public class Application {
                                 breaking = true;
 
                                 player.surrender();
-                                LOGGER.info("PLAYER ACTION: SURRENDER");
+                                System.out.println("PLAYER ACTION: SURRENDER");
                             } catch (PlayerException e) {
-                                LOGGER.warn(e.getMessage());
+                                System.out.println(e.getMessage());
                             }
                         } else {
-                            LOGGER.warn("NOT ALLOWED: HAND DOUBLED");
+                            System.out.println("NOT ALLOWED: HAND DOUBLED");
                         }
 
                         break;
 
                     default:
-                        LOGGER.warn("INVALID ENTRY: Available actions: (h)it, (s)tand, (sp)lit, (su)rrender\n> ");
+                        System.out.println("INVALID ENTRY: Available actions: (h)it, (s)tand, (sp)lit, (su)rrender");
                 }
 
                 if (breaking) {
@@ -244,15 +234,15 @@ public class Application {
         }
     }
 
-    private static void deal() {
-        LOGGER.info("*****DEALER TURN*****");
-        LOGGER.info(String.format("DEALER CARDS: %s and %s", dealer.getCards().get(0), dealer.getCards().get(1)));
+    private static synchronized void deal() {
+        System.out.println("*****DEALER TURN*****");
+        System.out.printf("DEALER CARDS: %s and %s%n", dealer.getCards().get(0), dealer.getCards().get(1));
 
-        while (!didDealerBust() && dealer.getPoints() < 17) {
+        while (!bust() && dealer.getPoints() < 17) {
             dealer.deal();
 
-            LOGGER.info("DEALER ACTION: HIT");
-            LOGGER.info(String.format("DEALER CARDS: %s and %s", dealer.getCards().get(0), dealer.getCards().get(1)));
+            System.out.println("DEALER ACTION: HIT");
+            System.out.printf("DEALER CARDS: %s and %s%n", dealer.getCards().get(0), dealer.getCards().get(1));
         }
     }
 
@@ -261,15 +251,15 @@ public class Application {
         int score = hand.getPoints();
 
         if (score == 21) {
-            if (hand.hasBlackJack()) {
-                LOGGER.info("PLAYER POINTS: BLACK JACK");
+            if (hand.blackjack()) {
+                System.out.println("PLAYER POINTS: BLACK JACK");
             } else {
-                LOGGER.info(String.format("PLAYER POINTS: %d", hand.getPoints()));
+                System.out.printf("PLAYER POINTS: %d%n", hand.getPoints());
             }
 
             return true;
         } else if (score == 0) {
-            LOGGER.info("PLAYER BUST");
+            System.out.println("PLAYER BUST");
 
             return true;
         }
@@ -277,9 +267,9 @@ public class Application {
         return false;
     }
 
-    private static boolean didDealerBust() {
+    private static boolean bust() {
         if (dealer.getPoints() == 0) {
-            LOGGER.info("DEALER BUST");
+            System.out.println("DEALER BUST");
 
             return true;
         } else {
@@ -287,20 +277,24 @@ public class Application {
         }
     }
 
-    private static String query(String question) {
-        String message = question.concat("\n> ");
-        String line = "";
+    private static synchronized String query(String question) {
+        BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+        String input = new String();
 
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(System.in))) {
-            while (line.length() < 1) {
-                LOGGER.info(message);
+        System.out.println(question);
 
-                line = reader.readLine();
+        try {
+            while (input.length() < 1) {
+                System.out.print(">");
+
+                input = reader.readLine();
             }
-        } catch (Exception e) {
-            LOGGER.error(e.getMessage());
-        }
 
-        return line;
+            return input;
+        } catch (IOException e) {
+            System.out.println(e.getMessage());
+
+            return new String();
+        }
     }
 }

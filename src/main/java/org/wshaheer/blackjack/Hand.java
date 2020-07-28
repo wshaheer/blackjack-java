@@ -56,7 +56,7 @@ public class Hand {
         updatePoints();
     }
 
-    public boolean hasBlackJack() {
+    public boolean blackjack() {
         return cards.size() == 2 && points == 21;
     }
 
